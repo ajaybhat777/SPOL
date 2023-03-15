@@ -2,6 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Kiota.Abstractions.Serialization;
+using Kiota.Abstractions.Serialization.Converters.Json;
+using Kiota.Builder;
+using Kiota.Builder.Extensions;
 using Microsoft.Graph;
 using Microsoft.Graph.Auth;
 using Microsoft.Identity.Client;
@@ -28,9 +32,14 @@ namespace GraphApiExample
 
             var httpClient = new HttpClient();
             var httpMessageHandler = new AuthHandler(authenticationProvider, httpClient);
-            var graphClient = new GraphServiceClient(httpMessageHandler);
 
-            var users = await graphClient.Users.Request().GetAsync();
+            var serializer = new JsonSerializationWriterFactory();
+            var deserializer = new JsonSerializationReaderFactory();
+            var requestAdapter = new HttpCore.RequestAdapter(httpMessageHandler, serializer, deserializer);
+
+            var client = new GraphServiceClient(requestAdapter);
+
+            var users = await client.Users.Request().GetAsync();
 
             foreach (var user in users)
             {
@@ -54,7 +63,16 @@ namespace GraphApiExample
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, System.Threading.CancellationToken cancellationToken)
         {
-            await _authenticationProvider.AuthenticateRequestAsync(request);
+            var requestInformation = new RequestInformation
+            {
+                HttpMethod = request.Method.ToString(),
+                URI = request.RequestUri.ToString(),
+            };
+
+            await _authenticationProvider.AuthenticateRequestAsync(requestInformation);
+            request.RequestUri = new Uri(requestInformation.URI);
+            request.Method = new HttpMethod(requestInformation.HttpMethod);
+
             return await _httpClient.SendAsync(request, cancellationToken);
         }
     }
