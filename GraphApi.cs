@@ -1,8 +1,10 @@
 using System;
 using System.Threading.Tasks;
+using Microsoft.Kiota.Abstractions.Authentication;
+using Microsoft.Kiota.Abstractions.Serialization;
+using Microsoft.Kiota.Http;
+using Microsoft.Kiota.Serialization.Json;
 using Microsoft.Graph;
-using Microsoft.Graph.Auth;
-using Microsoft.Identity.Client;
 
 namespace ConsoleApp1
 {
@@ -14,16 +16,16 @@ namespace ConsoleApp1
             string clientSecret = "your-client-secret";
             string tenantId = "your-tenant-id";
 
-            IConfidentialClientApplication confidentialClientApplication = ConfidentialClientApplicationBuilder
-                .Create(clientId)
-                .WithClientSecret(clientSecret)
-                .WithTenantId(tenantId)
-                .Build();
+            IAuthenticationProvider authProvider = new ClientCredentialProvider(clientId, clientSecret, tenantId);
 
-            ClientCredentialProvider authProvider = new ClientCredentialProvider(confidentialClientApplication);
+            var serializer = new JsonSerializationWriter();
 
-            GraphServiceClient graphClient = new GraphServiceClient(authProvider);
-            graphClient.BaseUrl = "https://graph.microsoft.com/beta";
+            var httpCore = new HttpCore(new Uri("https://graph.microsoft.com/beta"), new RetryHandler(new Uri("https://graph.microsoft.com/beta")));
+            var httpCoreFactory = new HttpCoreFactory(new[] { httpCore });
+            var requestAdapter = new RequestAdapter(httpCoreFactory, serializer);
+
+            var graphClient = new GraphServiceClient(requestAdapter);
+            graphClient.AuthenticationProvider = authProvider;
 
             var sites = await graphClient.Sites.Request().GetAsync();
             foreach (var site in sites)
