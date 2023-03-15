@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Kiota.Abstractions.Serialization;
-using Kiota.Abstractions.Serialization.Converters.Json;
 using Kiota.Builder;
-using Kiota.Builder.Extensions;
 using Microsoft.Graph;
 using Microsoft.Graph.Auth;
 using Microsoft.Identity.Client;
@@ -30,12 +28,10 @@ namespace GraphApiExample
 
             var authenticationProvider = new ClientCredentialProvider(confidentialClientApplication, scopes);
 
-            var httpClient = new HttpClient();
-            var httpMessageHandler = new AuthHandler(authenticationProvider, httpClient);
-
+            var httpClient = new HttpClient(new AuthHandler(authenticationProvider));
             var serializer = new JsonSerializationWriterFactory();
             var deserializer = new JsonSerializationReaderFactory();
-            var requestAdapter = new HttpCore.RequestAdapter(httpMessageHandler, serializer, deserializer);
+            var requestAdapter = new Kiota.Abstractions.RequestAdapter(httpClient, serializer, deserializer);
 
             var client = new GraphServiceClient(requestAdapter);
 
@@ -50,30 +46,19 @@ namespace GraphApiExample
         }
     }
 
-    public class AuthHandler : HttpMessageHandler
+    public class AuthHandler : DelegatingHandler
     {
         private readonly IAuthenticationProvider _authenticationProvider;
-        private readonly HttpClient _httpClient;
 
-        public AuthHandler(IAuthenticationProvider authenticationProvider, HttpClient httpClient)
+        public AuthHandler(IAuthenticationProvider authenticationProvider)
         {
             _authenticationProvider = authenticationProvider;
-            _httpClient = httpClient;
         }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, System.Threading.CancellationToken cancellationToken)
         {
-            var requestInformation = new RequestInformation
-            {
-                HttpMethod = request.Method.ToString(),
-                URI = request.RequestUri.ToString(),
-            };
-
-            await _authenticationProvider.AuthenticateRequestAsync(requestInformation);
-            request.RequestUri = new Uri(requestInformation.URI);
-            request.Method = new HttpMethod(requestInformation.HttpMethod);
-
-            return await _httpClient.SendAsync(request, cancellationToken);
+            await _authenticationProvider.AuthenticateRequestAsync(request);
+            return await base.SendAsync(request, cancellationToken);
         }
     }
 }
