@@ -15,7 +15,7 @@ interface OutputObject {
 }
 
 function transformList(inputList: InputObject[], selectedLetter: string): OutputObject[] {
-  return inputList.flatMap((obj) => {
+  const outputList: OutputObject[] = inputList.map((obj) => {
     if (obj.Letter === selectedLetter) {
       return {
         Title: obj.PrimaryName,
@@ -25,25 +25,23 @@ function transformList(inputList: InputObject[], selectedLetter: string): Output
     }
 
     if (obj.alternateLetter1 === selectedLetter) {
-      return [
-        {
-          Title: obj.alternateName1,
-          AlsoKnownAs: obj.PrimaryName,
-          Description: obj.description,
-        },
-      ];
+      return {
+        Title: obj.alternateName1,
+        AlsoKnownAs: obj.PrimaryName,
+        Description: obj.description,
+      };
     }
 
     if (obj.alternateLetter2 === selectedLetter) {
-      return [
-        {
-          Title: obj.alternateName2,
-          AlsoKnownAs: obj.PrimaryName,
-          Description: obj.description,
-        },
-      ];
+      return {
+        Title: obj.alternateName2,
+        AlsoKnownAs: obj.PrimaryName,
+        Description: obj.description,
+      };
     }
 
-    return [];
-  });
+    return null;
+  }).filter(Boolean);
+
+  return outputList;
 }
