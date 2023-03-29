@@ -1,26 +1,27 @@
-type ListItem = {
-  letter: string,
-  url: string,
-  title: string,
-};
+interface ILinkUrlDetail {
+  title: string;
+  url: string;
+}
 
-type GroupedList = {
-  [letter: string]: {
-    url: string[],
-    title: string[],
-  },
-};
+interface IGroupedList {
+  letter: string;
+  links: ILinkUrlDetail[];
+}
 
-function groupList(list: ListItem[]): GroupedList {
-  return list.reduce((result: GroupedList, item: ListItem) => {
-    if (!result[item.letter]) {
-      result[item.letter] = {
-        url: [],
-        title: [],
-      };
-    }
-    result[item.letter].url.push(item.url);
-    result[item.letter].title.push(item.title);
-    return result;
-  }, {});
+function groupList(list: ListItem[]): IGroupedList[] {
+  const result: { [letter: string]: IGroupedList } = list.reduce(
+    (acc, item) => {
+      if (!acc[item.letter]) {
+        acc[item.letter] = {
+          letter: item.letter,
+          links: [],
+        };
+      }
+      acc[item.letter].links.push({ title: item.title, url: item.url });
+      return acc;
+    },
+    {}
+  );
+
+  return Object.values(result);
 }
