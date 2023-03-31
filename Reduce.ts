@@ -1,29 +1,24 @@
-interface ILinkUrlDetail {
-  title: string;
-  url: string;
-}
+// Sample input data
+const objectsList = [
+  { letter: 'A', url: 'https://example.com/a', title: 'Title A' },
+  { letter: 'B', url: 'https://example.com/b', title: 'Title B' },
+  { letter: 'A', url: 'https://example.com/a2', title: 'Title A2' },
+  { letter: 'C', url: 'https://example.com/c', title: 'Title C' },
+  { letter: 'B', url: 'https://example.com/b2', title: 'Title B2' },
+];
 
-interface IGroupedList {
-  letter: string;
-  links: ILinkUrlDetail[];
-}
+// Group the objects by letter
+const grouped = objectsList.reduce((acc, obj) => {
+  const letter = obj.letter;
+  if (!acc[letter]) {
+    acc[letter] = [];
+  }
+  acc[letter].push({ title: obj.title, url: obj.url });
+  return acc;
+}, {});
 
-function groupList(list: ListItem[]): IGroupedList[] {
-  const result = Object.keys(list.reduce((acc, item) => {
-    if (!acc[item.letter]) {
-      acc[item.letter] = {
-        letter: item.letter,
-        links: [],
-      };
-    }
-    acc[item.letter].links.push({ title: item.title, url: item.url });
-    return acc;
-  }, {})).map(key => {
-    return {
-      letter: key,
-      links: acc[key].links,
-    };
-  });
-
-  return result;
-}
+// Create the output model
+const IAtoZLink = Object.keys(grouped).map((letter) => ({
+  letter: letter,
+  Ilinkurldetail: grouped[letter],
+}));
