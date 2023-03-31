@@ -1,24 +1,32 @@
+interface ILinkUrlDetail {
+  title: string;
+  url: string;
+}
+
+interface IAtoZLink {
+  letter: string;
+  links: ILinkUrlDetail[];
+}
+
 // Sample input data
-const objectsList = [
-  { letter: 'A', url: 'https://example.com/a', title: 'Title A' },
-  { letter: 'B', url: 'https://example.com/b', title: 'Title B' },
-  { letter: 'A', url: 'https://example.com/a2', title: 'Title A2' },
-  { letter: 'C', url: 'https://example.com/c', title: 'Title C' },
-  { letter: 'B', url: 'https://example.com/b2', title: 'Title B2' },
+const inputData = [
+  { letter: 'A', url: 'http://example.com/a1', title: 'A1' },
+  { letter: 'A', url: 'http://example.com/a2', title: 'A2' },
+  { letter: 'B', url: 'http://example.com/b1', title: 'B1' },
+  { letter: 'B', url: 'http://example.com/b2', title: 'B2' },
+  { letter: 'B', url: 'http://example.com/b3', title: 'B3' },
+  { letter: 'C', url: 'http://example.com/c1', title: 'C1' },
 ];
 
-// Group the objects by letter
-const grouped = objectsList.reduce((acc, obj) => {
-  const letter = obj.letter;
-  if (!acc[letter]) {
-    acc[letter] = [];
+// Group the input data by letter and create the IAtoZLink output model
+const outputData: IAtoZLink[] = inputData.reduce((acc, curr) => {
+  const index = acc.findIndex((item) => item.letter === curr.letter);
+  if (index === -1) {
+    acc.push({ letter: curr.letter, links: [{ title: curr.title, url: curr.url }] });
+  } else {
+    acc[index].links.push({ title: curr.title, url: curr.url });
   }
-  acc[letter].push({ title: obj.title, url: obj.url });
   return acc;
-}, {});
+}, []);
 
-// Create the output model
-const IAtoZLink = Object.keys(grouped).map((letter) => ({
-  letter: letter,
-  Ilinkurldetail: grouped[letter],
-}));
+console.log(outputData);
