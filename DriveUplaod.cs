@@ -33,7 +33,10 @@ using (var httpClient = new HttpClient())
         };
         var metadataJson = JsonConvert.SerializeObject(metadata);
         var metadataContent = new StringContent(metadataJson, Encoding.UTF8, "application/json");
-        var metadataResponse = await httpClient.PatchAsync(requestUrl, metadataContent, new CancellationToken());
+        var patchRequest = new HttpRequestMessage(new HttpMethod("PATCH"), requestUrl);
+        patchRequest.Content = metadataContent;
+        patchRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        var metadataResponse = await httpClient.SendAsync(patchRequest, new CancellationToken());
         metadataResponse.EnsureSuccessStatusCode();
     }
 }
