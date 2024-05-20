@@ -1,0 +1,34 @@
+var investmentData = from inv in dbContext.Investments
+                     join pc in dbContext.Project_Category on inv.ProductType equals pc.Code
+                     join invst in dbContext.Investment_Status on inv.StatusID equals invst.ID
+                     select new
+                     {
+                         inv.ClosedDate,
+                         pc.Description,
+                         AllocationStatus = invst.Name,
+                         inv.InvestmentAmount
+                     };
+
+var groupedData = investmentData
+    .AsEnumerable() // Switch to in-memory processing
+    .GroupBy(x => x.Description)
+    .Select(productGroup => new
+    {
+        ProductDescription = productGroup.Key,
+        YearlyData = productGroup
+            .GroupBy(pg => pg.ClosedDate.Year)
+            .Select(yearGroup => new
+            {
+                Year = yearGroup.Key,
+                AllocationStatuses = yearGroup
+                    .GroupBy(yg => yg.AllocationStatus)
+                    .Select(statusGroup => new
+                    {
+                        AllocationStatus = statusGroup.Key,
+                        TotalInvestment = statusGroup.Sum(x => x.InvestmentAmount)
+                    })
+                    .ToList()
+            })
+            .ToList()
+    })
+    .ToList();
