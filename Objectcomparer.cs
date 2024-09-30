@@ -47,7 +47,11 @@ public static class ObjectComparer
                     var newValue = property.GetValue(newObj);
                     string propertyPath = string.IsNullOrEmpty(propertyName) ? property.Name : $"{propertyName}.{property.Name}";
 
-                    CompareRecursive(oldValue, newValue, oldValues, newValues, propertyPath);
+                    // Only recurse if the property values are different
+                    if (oldValue != null && newValue != null && !oldValue.Equals(newValue))
+                    {
+                        CompareRecursive(oldValue, newValue, oldValues, newValues, propertyPath);
+                    }
                 }
             }
         }
@@ -119,11 +123,11 @@ public class Program
         // New object
         var newObj = new TestClass 
         { 
-            Id = 1, 
-            Name = "New Name", 
+            Id = 1,  // Same, should be excluded
+            Name = "New Name",  // Different
             SubModels = new List<SubModel>
             {
-                new SubModel { SubId = 1, SubName = "Old Sub 1" }, // Same
+                new SubModel { SubId = 1, SubName = "Old Sub 1" }, // Same, should be excluded
                 new SubModel { SubId = 2, SubName = "New Sub 2" }  // Different
             }
         };
