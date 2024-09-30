@@ -2,11 +2,10 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
-using Newtonsoft.Json;  // Add Newtonsoft.Json NuGet package
+using Newtonsoft.Json;
 
 public static class ObjectComparer
 {
-    // Function to compare two objects and get only the differences (old and new models separately)
     public static (Dictionary<string, object> oldValues, Dictionary<string, object> newValues) CompareObjects(object oldObject, object newObject)
     {
         var oldValues = new Dictionary<string, object>();
@@ -15,13 +14,16 @@ public static class ObjectComparer
         return (oldValues, newValues);
     }
 
-    // Recursive function to compare properties of objects
     private static void CompareRecursive(object oldObj, object newObj, Dictionary<string, object> oldValues, Dictionary<string, object> newValues, string propertyName)
     {
+        // If both are null, or they are the same instance, skip
         if (oldObj == null && newObj == null)
             return;
 
-        // If both are primitives or simple types, compare directly
+        if (oldObj != null && newObj != null && oldObj.Equals(newObj))
+            return;
+
+        // If they differ or one is null, add to result
         if (IsSimpleType(oldObj) || IsSimpleType(newObj))
         {
             if (!Equals(oldObj, newObj))
@@ -60,7 +62,6 @@ public static class ObjectComparer
         }
     }
 
-    // Compare collections
     private static void CompareCollections(IEnumerable oldCollection, IEnumerable newCollection, Dictionary<string, object> oldValues, Dictionary<string, object> newValues, string propertyName)
     {
         var oldEnumerator = oldCollection?.GetEnumerator();
@@ -79,15 +80,13 @@ public static class ObjectComparer
         }
     }
 
-    // Check if a type is a simple (primitive or immutable) type
     private static bool IsSimpleType(object obj)
     {
-        if (obj == null) return false;
+        if (obj == null) return true; // Treat null as a simple type for comparison
         Type type = obj.GetType();
-        return type.IsPrimitive || type.IsValueType || type == typeof(string);
+        return type.IsPrimitive || type.IsValueType || type == typeof(string) || type == typeof(decimal);
     }
 
-    // Serialize the old and new models with only differences to a JSON string
     public static string GetDifferencesAsJson((Dictionary<string, object> oldValues, Dictionary<string, object> newValues) models)
     {
         var result = new
@@ -95,19 +94,17 @@ public static class ObjectComparer
             OldValues = models.oldValues,
             NewValues = models.newValues
         };
-        
+
         return JsonConvert.SerializeObject(result, Formatting.Indented);
     }
 }
 
-// Example model class
 public class SubModel
 {
     public int SubId { get; set; }
     public string SubName { get; set; }
 }
 
-// Another example model class
 public class TestClass
 {
     public int Id { get; set; }
@@ -119,11 +116,10 @@ public class Program
 {
     public static void Main()
     {
-        // Old object
-        var oldObj = new TestClass 
-        { 
-            Id = 1, 
-            Name = "Old Name", 
+        var oldObj = new TestClass
+        {
+            Id = 1,
+            Name = "Old Name",
             SubModels = new List<SubModel>
             {
                 new SubModel { SubId = 1, SubName = "Old Sub 1" },
@@ -131,9 +127,8 @@ public class Program
             }
         };
 
-        // New object
-        var newObj = new TestClass 
-        { 
+        var newObj = new TestClass
+        {
             Id = 1,  // Same, should be excluded
             Name = "New Name",  // Different
             SubModels = new List<SubModel>
@@ -143,13 +138,8 @@ public class Program
             }
         };
 
-        // Compare objects and get differences (old and new values separately)
         var differences = ObjectComparer.CompareObjects(oldObj, newObj);
-
-        // Convert differences (old and new values) to JSON string
         string jsonDifferences = ObjectComparer.GetDifferencesAsJson(differences);
-        
-        // Output the JSON
         Console.WriteLine(jsonDifferences);
     }
 }
