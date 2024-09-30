@@ -6,7 +6,8 @@ using Newtonsoft.Json;  // Add Newtonsoft.Json NuGet package
 
 public static class ObjectComparer
 {
-    public static (Dictionary<string, object> oldModel, Dictionary<string, object> newModel) CompareObjects(object oldObject, object newObject)
+    // Function to compare two objects and get only the differences (old and new models separately)
+    public static (Dictionary<string, object> oldValues, Dictionary<string, object> newValues) CompareObjects(object oldObject, object newObject)
     {
         var oldValues = new Dictionary<string, object>();
         var newValues = new Dictionary<string, object>();
@@ -14,6 +15,7 @@ public static class ObjectComparer
         return (oldValues, newValues);
     }
 
+    // Recursive function to compare properties of objects
     private static void CompareRecursive(object oldObj, object newObj, Dictionary<string, object> oldValues, Dictionary<string, object> newValues, string propertyName)
     {
         if (oldObj == null && newObj == null)
@@ -51,6 +53,7 @@ public static class ObjectComparer
         }
     }
 
+    // Compare collections
     private static void CompareCollections(IEnumerable oldCollection, IEnumerable newCollection, Dictionary<string, object> oldValues, Dictionary<string, object> newValues, string propertyName)
     {
         var oldEnumerator = oldCollection?.GetEnumerator();
@@ -70,12 +73,12 @@ public static class ObjectComparer
     }
 
     // Serialize the old and new models with only differences to a JSON string
-    public static string GetDifferencesAsJson((Dictionary<string, object> oldModel, Dictionary<string, object> newModel) models)
+    public static string GetDifferencesAsJson((Dictionary<string, object> oldValues, Dictionary<string, object> newValues) models)
     {
         var result = new
         {
-            OldModel = models.oldModel,
-            NewModel = models.newModel
+            OldValues = models.oldValues,
+            NewValues = models.newValues
         };
         
         return JsonConvert.SerializeObject(result, Formatting.Indented);
@@ -125,10 +128,10 @@ public class Program
             }
         };
 
-        // Compare objects and get old and new models with differences
+        // Compare objects and get differences (old and new values separately)
         var differences = ObjectComparer.CompareObjects(oldObj, newObj);
 
-        // Convert old and new models with differences to JSON string
+        // Convert differences (old and new values) to JSON string
         string jsonDifferences = ObjectComparer.GetDifferencesAsJson(differences);
         
         // Output the JSON
