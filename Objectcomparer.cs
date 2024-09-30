@@ -21,15 +21,18 @@ public static class ObjectComparer
         if (oldObj == null && newObj == null)
             return;
 
-        // If one is null or they are different, record the difference
-        if (oldObj == null || newObj == null || !oldObj.Equals(newObj))
+        // If both are primitives or simple types, compare directly
+        if (IsSimpleType(oldObj) || IsSimpleType(newObj))
         {
-            oldValues[propertyName] = oldObj;
-            newValues[propertyName] = newObj;
+            if (!Equals(oldObj, newObj))
+            {
+                oldValues[propertyName] = oldObj;
+                newValues[propertyName] = newObj;
+            }
             return;
         }
 
-        Type type = oldObj.GetType();
+        Type type = oldObj?.GetType() ?? newObj?.GetType();
 
         // Handle collections like arrays and lists
         if (typeof(IEnumerable).IsAssignableFrom(type) && !(oldObj is string))
@@ -43,12 +46,12 @@ public static class ObjectComparer
             {
                 if (property.CanRead)
                 {
-                    var oldValue = property.GetValue(oldObj);
-                    var newValue = property.GetValue(newObj);
+                    var oldValue = oldObj != null ? property.GetValue(oldObj) : null;
+                    var newValue = newObj != null ? property.GetValue(newObj) : null;
                     string propertyPath = string.IsNullOrEmpty(propertyName) ? property.Name : $"{propertyName}.{property.Name}";
 
                     // Only recurse if the property values are different
-                    if (oldValue != null && newValue != null && !oldValue.Equals(newValue))
+                    if (!Equals(oldValue, newValue))
                     {
                         CompareRecursive(oldValue, newValue, oldValues, newValues, propertyPath);
                     }
@@ -74,6 +77,14 @@ public static class ObjectComparer
             CompareRecursive(oldValue, newValue, oldValues, newValues, indexedPropertyName);
             index++;
         }
+    }
+
+    // Check if a type is a simple (primitive or immutable) type
+    private static bool IsSimpleType(object obj)
+    {
+        if (obj == null) return false;
+        Type type = obj.GetType();
+        return type.IsPrimitive || type.IsValueType || type == typeof(string);
     }
 
     // Serialize the old and new models with only differences to a JSON string
