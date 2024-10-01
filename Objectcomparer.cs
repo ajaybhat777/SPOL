@@ -62,21 +62,53 @@ public static class ObjectComparer
         }
     }
 
+    // Compare collections
     private static void CompareCollections(IEnumerable oldCollection, IEnumerable newCollection, Dictionary<string, object> oldValues, Dictionary<string, object> newValues, string propertyName)
     {
-        var oldEnumerator = oldCollection?.GetEnumerator();
-        var newEnumerator = newCollection?.GetEnumerator();
+        var oldList = oldCollection != null ? new List<object>() : null;
+        var newList = newCollection != null ? new List<object>() : null;
 
-        int index = 0;
-
-        while ((oldEnumerator?.MoveNext() ?? false) | (newEnumerator?.MoveNext() ?? false))
+        if (oldCollection != null)
         {
-            var oldValue = oldEnumerator?.Current;
-            var newValue = newEnumerator?.Current;
-            string indexedPropertyName = $"{propertyName}[{index}]";
+            foreach (var item in oldCollection)
+            {
+                oldList.Add(item);
+            }
+        }
+
+        if (newCollection != null)
+        {
+            foreach (var item in newCollection)
+            {
+                newList.Add(item);
+            }
+        }
+
+        if (oldList == null || newList == null || oldList.Count != newList.Count)
+        {
+            oldValues[propertyName] = oldList;
+            newValues[propertyName] = newList;
+            return;
+        }
+
+        for (int i = 0; i < oldList.Count; i++)
+        {
+            var oldValue = oldList[i];
+            var newValue = newList[i];
+
+            string indexedPropertyName = $"{propertyName}[{i}]";
 
             CompareRecursive(oldValue, newValue, oldValues, newValues, indexedPropertyName);
-            index++;
+        }
+
+        // Check if one collection has extra elements
+        if (oldList.Count < newList.Count)
+        {
+            for (int i = oldList.Count; i < newList.Count; i++)
+            {
+                string indexedPropertyName = $"{propertyName}[{i}]";
+                newValues[indexedPropertyName] = newList[i];
+            }
         }
     }
 
@@ -110,12 +142,14 @@ public class TestClass
     public int Id { get; set; }
     public string Name { get; set; }
     public List<SubModel> SubModels { get; set; }
+    public List<int> Numbers { get; set; }
 }
 
 public class Program
 {
     public static void Main()
     {
+        // Old object with a list of integers
         var oldObj = new TestClass
         {
             Id = 1,
@@ -124,9 +158,11 @@ public class Program
             {
                 new SubModel { SubId = 1, SubName = "Old Sub 1" },
                 new SubModel { SubId = 2, SubName = "Old Sub 2" }
-            }
+            },
+            Numbers = new List<int> { 2, 3 }
         };
 
+        // New object with an updated list of integers
         var newObj = new TestClass
         {
             Id = 1,  // Same, should be excluded
@@ -135,11 +171,17 @@ public class Program
             {
                 new SubModel { SubId = 1, SubName = "Old Sub 1" }, // Same, should be excluded
                 new SubModel { SubId = 2, SubName = "New Sub 2" }  // Different
-            }
+            },
+            Numbers = new List<int> { 2, 3, 4 }  // Added "4"
         };
 
+        // Compare objects and get differences
         var differences = ObjectComparer.CompareObjects(oldObj, newObj);
+
+        // Convert differences (old and new values) to JSON string
         string jsonDifferences = ObjectComparer.GetDifferencesAsJson(differences);
+
+        // Output the JSON
         Console.WriteLine(jsonDifferences);
     }
 }
