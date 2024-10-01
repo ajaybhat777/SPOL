@@ -62,7 +62,6 @@ public static class ObjectComparer
         }
     }
 
-    // Compare collections
     private static void CompareCollections(IEnumerable oldCollection, IEnumerable newCollection, Dictionary<string, object> oldValues, Dictionary<string, object> newValues, string propertyName)
     {
         var oldList = oldCollection != null ? new List<object>() : null;
@@ -84,32 +83,56 @@ public static class ObjectComparer
             }
         }
 
-        if (oldList == null || newList == null || oldList.Count != newList.Count)
+        // If both lists are null, skip
+        if (oldList == null && newList == null) return;
+
+        // If they differ in count or are null, capture the whole list
+        if (oldList == null || newList == null || oldList.Count != newList.Count || !AreListsEqual(oldList, newList))
         {
             oldValues[propertyName] = oldList;
             newValues[propertyName] = newList;
             return;
         }
 
+        // For lists of models, we check each element for differences
         for (int i = 0; i < oldList.Count; i++)
         {
             var oldValue = oldList[i];
             var newValue = newList[i];
 
-            string indexedPropertyName = $"{propertyName}[{i}]";
-
-            CompareRecursive(oldValue, newValue, oldValues, newValues, indexedPropertyName);
-        }
-
-        // Check if one collection has extra elements
-        if (oldList.Count < newList.Count)
-        {
-            for (int i = oldList.Count; i < newList.Count; i++)
+            // If the items are not simple types and there's a difference, show full model
+            if (!IsSimpleType(oldValue) && !IsSimpleType(newValue))
             {
-                string indexedPropertyName = $"{propertyName}[{i}]";
-                newValues[indexedPropertyName] = newList[i];
+                var oldSubValues = new Dictionary<string, object>();
+                var newSubValues = new Dictionary<string, object>();
+
+                // Compare the objects recursively
+                CompareRecursive(oldValue, newValue, oldSubValues, newSubValues, propertyName);
+
+                // If any difference is found within the model, include the entire model
+                if (oldSubValues.Count > 0 || newSubValues.Count > 0)
+                {
+                    oldValues[$"{propertyName}[{i}]"] = oldValue;
+                    newValues[$"{propertyName}[{i}]"] = newValue;
+                }
             }
         }
+    }
+
+    private static bool AreListsEqual(List<object> oldList, List<object> newList)
+    {
+        // Check if lists contain the same elements
+        if (oldList.Count != newList.Count) return false;
+
+        for (int i = 0; i < oldList.Count; i++)
+        {
+            if (!Equals(oldList[i], newList[i]))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static bool IsSimpleType(object obj)
@@ -162,7 +185,7 @@ public class Program
             Numbers = new List<int> { 2, 3 }
         };
 
-        // New object with an updated list of integers
+        // New object with updated list of integers
         var newObj = new TestClass
         {
             Id = 1,  // Same, should be excluded
@@ -170,9 +193,9 @@ public class Program
             SubModels = new List<SubModel>
             {
                 new SubModel { SubId = 1, SubName = "Old Sub 1" }, // Same, should be excluded
-                new SubModel { SubId = 2, SubName = "New Sub 2" }  // Different
+                new SubModel { SubId = 2, SubName = "Updated Sub 2" }  // Different - full model should appear
             },
-            Numbers = new List<int> { 2, 3, 4 }  // Added "4"
+            Numbers = new List<int> { 2, 4 }  // Changed
         };
 
         // Compare objects and get differences
